@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>JS Bin</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/jszip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/xlsx.js"></script>
+    <script src="./web3.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <input type="file" id="file" />
+    <div id="results"></div>
+    <script>
+      var ExcelToJSON = function () {
+        this.parseExcel = function (file) {
+          var reader = new FileReader();
+
+          reader.onload = function (e) {
+            var data = e.target.result;
+            var workbook = XLSX.read(data, {
+              type: "binary",
+            });
+
+            workbook.SheetNames.forEach(function (sheetName) {
+              // Here is your object
+              var XL_row_object = XLSX.utils.sheet_to_json(
+                workbook.Sheets[sheetName]
+              );
+              const rows = XL_row_object.map((row) => Object.values(row));
+              const transpose = (matrix) => {
+                let [row] = matrix;
+                return row.map((value, column) =>
+                  matrix.map((row) => row[column].replace("\n", ""))
+                );
+              };
+              const resultsEl = document.getElementById('results');
+              const trans = transpose(rows);
+              const priceFormated = trans.map((row) => {
+                return row.map((v) => Web3.utils.isAddress(v) ? v : Web3.utils.toWei(v))
+              });
+              priceFormated.map((row) => {
+                const textarea = document.createElement('TEXTAREA');
+                textarea.value = JSON.stringify(row);
+                textarea.style.width = '80%';
+                textarea.style.margin = '16px';
+                textarea.setAttribute('rows', 6);
+                resultsEl.appendChild(textarea);
+              });
+            });
+          };
+
+          reader.onerror = function (ex) {
+            console.log(ex);
+          };
+
+          reader.readAsBinaryString(file);
+        };
+      };
+
+      function onFileChange(e) {
+        var file = e.target.files[0];
+        var handler = new ExcelToJSON();
+        handler.parseExcel(file);
+      }
+    </script>
+    <script>
+      document.getElementById("file").onchange = onFileChange;
+    </script>
+  </body>
+</html>
